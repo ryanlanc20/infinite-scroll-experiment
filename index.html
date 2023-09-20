@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Infinite scroll experiment</title>
+
+    <style>
+        .slide
+        {
+            width: 100%;
+            float: left;
+            height: 300px;
+            background-color: #ccc;
+        }
+        .infinitescrollmarker
+        {
+            float: left;
+            width: 100%;
+        }
+    </style>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+</head>
+<body>
+    <div class="infinitescrollmarker"></div>
+    <script>
+        function renderResults(results, previousScrollMarker, observer)
+        {
+            results.forEach((result) => {
+                let newPost = document.createElement("div");
+                newPost.classList.add("slide");
+                newPost.innerText = result.url;
+                document.body.appendChild(newPost);
+            });
+
+            // Add next infinite scroll marker to trigger request
+            let marker = document.createElement("div");
+            marker.classList.add("infinitescrollmarker");
+            document.body.appendChild(marker);
+            observer.observe(marker);
+
+            // Do not make requests for previously downloaded results
+            observer.unobserve(previousScrollMarker.target);
+        }
+
+        let previousResultIndex = 0;
+        let markerObserver = new IntersectionObserver((entries,observer) => {
+            entries.forEach((entry) => {
+                if(entry.isIntersecting)
+                {
+                    $.ajax({
+                        url: `http://127.0.0.1:5000/search?p=${previousResultIndex}`,
+                        success: function(results,status){
+                            renderResults(results,entry,observer);
+                            previousResultIndex += 10;
+                        },
+                        async: false
+                    });
+                }
+            });
+        },{"root": null,"rootMargin": "0px", "threshold": 1});
+
+        $(document).ready(function(){
+            markerObserver.observe($(".infinitescrollmarker")[0]);
+        });
+    </script>
+</body>
+</html>
